@@ -1,0 +1,149 @@
+replicaCount: 3
+
+image:
+  repository: erp-python
+  pullPolicy: IfNotPresent
+  tag: "0.1.0"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/api/admin/v1/metrics"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+  hosts:
+    - host: erp-python.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: erp-python-tls
+      hosts:
+        - erp-python.example.com
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - erp-python
+          topologyKey: kubernetes.io/hostname
+
+env:
+  APP_NAME: "跨境电商ERP Python"
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  DB_HOST: "erp-python-postgresql.erp-python-system.svc.cluster.local"
+  DB_PORT: "5432"
+  DB_NAME: "erp_python"
+  DB_POOL_SIZE: "20"
+  DB_MAX_OVERFLOW: "10"
+  REDIS_HOST: "erp-python-redis.erp-python-system.svc.cluster.local"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  KAFKA_BOOTSTRAP_SERVERS: "erp-python-kafka.erp-python-system.svc.cluster.local:9092"
+  ES_HOSTS: "http://erp-python-elasticsearch.erp-python-system.svc.cluster.local:9200"
+  LOG_LEVEL: "INFO"
+  JSON_LOGS: "true"
+  CORS_ORIGINS: '["https://erp-python.example.com"]'
+
+envSecrets:
+  DB_PASSWORD: erp-python-db-secret
+  DB_USER: erp-python-db-secret
+  REDIS_PASSWORD: erp-python-redis-secret
+  JWT_SECRET_KEY: erp-python-jwt-secret
+  ENCRYPTION_KEY: erp-python-encryption-secret
+
+livenessProbe:
+  httpGet:
+    path: /api/admin/v1/health
+    port: 8000
+  initialDelaySeconds: 30
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /api/admin/v1/health
+    port: 8000
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+volumes:
+  - name: tmp
+    emptyDir: {}
+
+volumeMounts:
+  - name: tmp
+    mountPath: /tmp
+
+initContainers:
+  - name: db-migrate
+    image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    envFrom:
+      - configMapRef:
+          name: erp-python-config
+      - secretRef:
+          name: erp-python-db-secret
+
+persistence:
+  enabled: false

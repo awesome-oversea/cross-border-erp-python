@@ -1,0 +1,14 @@
+apiVersion: v2
+name: erp-python
+description: Cross-Border E-Commerce ERP Platform (Python/FastAPI)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: ERP Team
+keywords:
+  - erp
+  - cross-border
+  - ecommerce
+  - fastapi
+home: https://github.com/example/erp-python

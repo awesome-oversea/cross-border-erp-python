@@ -1,0 +1,81 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Virtual environment ---
+env/
+venv/
+.venv/
+virtualenv/
+
+# --- IDE / Editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# --- Environment files (keep .env.example) ---
+.env
+.env.local
+.env.test
+.env.wsl
+
+# --- Python testing & linting ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# --- Docker ---
+.dockerignore
+
+# --- Node / Frontend ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.turbo/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/pnpm-lock.yaml
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Celery ---
+celerybeat-schedule
+celerybeat.pid
+
+# --- Alembic (committed manually) ---
+# migrations/versions/*.py  — uncomment to ignore auto-generated migrations
+
+# --- MinIO local data ---
+minio-data/
+
+# --- VS Code workspace ---
+*.code-workspace
+
+# --- OS files ---
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

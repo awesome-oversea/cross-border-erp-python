@@ -1,0 +1,192 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: erp-api
+  labels:
+    app: erp-api
+    version: v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: erp-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: erp-api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/api/v1/metrics"
+    spec:
+      containers:
+        - name: erp-api
+          image: erp-api:0.1.0
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: ERP_ENVIRONMENT
+              valueFrom:
+                configMapKeyRef:
+                  name: erp-config
+                  key: environment
+            - name: ERP_DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: erp-secrets
+                  key: db_url
+            - name: ERP_REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: erp-secrets
+                  key: redis_url
+            - name: ERP_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: erp-secrets
+                  key: secret_key
+          envFrom:
+            - configMapRef:
+                name: erp-config
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+      volumes:
+        - name: config-volume
+          configMap:
+            name: erp-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-api
+  labels:
+    app: erp-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: erp-api
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: erp-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+    - hosts:
+        - erp.example.com
+      secretName: erp-tls
+  rules:
+    - host: erp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: erp-api
+                port:
+                  number: 8000
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: erp-config
+data:
+  environment: "production"
+  ERP_DEBUG: "false"
+  ERP_LOG_LEVEL: "INFO"
+  ERP_DB_POOL_SIZE: "20"
+  ERP_DB_MAX_OVERFLOW: "10"
+  ERP_REDIS_POOL_SIZE: "20"
+  ERP_CORS_ORIGINS: '["https://erp.example.com"]'
+  ERP_API_PREFIX: "/api/v1"
+  ERP_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  ERP_MINIO_ENDPOINT: "minio:9000"
+  ERP_ELASTICSEARCH_URL: "http://elasticsearch:9200"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: erp-secrets
+type: Opaque
+stringData:
+  db_url: "postgresql+asyncpg://erp:CHANGE_ME@postgresql:5432/erp"
+  redis_url: "redis://redis:6379/0"
+  secret_key: "CHANGE_ME_TO_RANDOM_SECRET_KEY"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: erp-api-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: erp-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: erp-api-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: erp-api

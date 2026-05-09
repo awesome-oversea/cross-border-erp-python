@@ -1,0 +1,48 @@
+services:
+  erp-python-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${ERP_PYTHON_APP_IMAGE:-erp-python-api:local}
+    container_name: erp-python-api
+    ports:
+      - "${ERP_PYTHON_APP_HOST_PORT:-18082}:8000"
+    environment:
+      ERP_APP_NAME: ${ERP_APP_NAME:-Cross-Border ERP Python}
+      ERP_ENVIRONMENT: ${ERP_ENVIRONMENT:-development}
+      ERP_DEBUG: ${ERP_DEBUG:-true}
+      ERP_SECRET_KEY: ${ERP_SECRET_KEY}
+      ERP_DB_URL: ${ERP_DB_URL}
+      ERP_DB_POOL_SIZE: ${ERP_DB_POOL_SIZE:-20}
+      ERP_DB_MAX_OVERFLOW: ${ERP_DB_MAX_OVERFLOW:-10}
+      ERP_DB_ECHO: ${ERP_DB_ECHO:-false}
+      ERP_REDIS_URL: ${ERP_REDIS_URL}
+      ERP_REDIS_KEY_PREFIX: ${ERP_REDIS_KEY_PREFIX:-erp-python:}
+      ERP_KAFKA_BOOTSTRAP_SERVERS: ${ERP_KAFKA_BOOTSTRAP_SERVERS}
+      ERP_MINIO_ENDPOINT: ${ERP_MINIO_ENDPOINT}
+      ERP_MINIO_ACCESS_KEY: ${ERP_MINIO_ACCESS_KEY}
+      ERP_MINIO_SECRET_KEY: ${ERP_MINIO_SECRET_KEY}
+      ERP_MINIO_BUCKET: ${ERP_MINIO_BUCKET:-erp-assets}
+      ERP_ES_URL: ${ERP_ES_URL}
+      ERP_CLICKHOUSE_URL: ${ERP_CLICKHOUSE_URL:-}
+      ERP_CLICKHOUSE_DB: ${ERP_CLICKHOUSE_DB:-erp_analytics}
+      ERP_JAEGER_ENDPOINT: ${ERP_JAEGER_ENDPOINT:-}
+      ERP_PMS_API_URL: ${ERP_PMS_API_URL:-}
+      ERP_PMS_AUTH_TOKEN: ${ERP_PMS_AUTH_TOKEN:-}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-erp-python}
+    volumes:
+      - ${ERP_PYTHON_RUNTIME_ROOT:-/data/aitools/erp-python}/logs:/app/logs
+      - ${ERP_PYTHON_RUNTIME_ROOT:-/data/aitools/erp-python}/artifacts:/app/artifacts
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+networks:
+  default:
+    external: true
+    name: shared-runtime-network

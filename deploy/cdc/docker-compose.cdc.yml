@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  debezium:
+    image: debezium/connect:2.5
+    container_name: erp-debezium
+    ports:
+      - "8083:8083"
+      - "1919:1919"
+    environment:
+      BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP:-kafka:9092}
+      GROUP_ID: erp-debezium
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      JMX_PORT: "1919"
+      LOG_LEVEL: INFO
+      ENABLE_APICURIO_CONVERTERS: "false"
+      ENABLE_DEBEZIUM_SCRIPTING: "true"
+    depends_on:
+      - kafka
+      - postgres
+    restart: unless-stopped
+    volumes:
+      - ./debezium-connector-config.json:/config/connector-config.json:ro
+
+  debezium-ui:
+    image: debezium/debezium-ui:2.5
+    container_name: erp-debezium-ui
+    ports:
+      - "8084:8080"
+    environment:
+      KAFKA_CONNECT_URIS: http://debezium:8083
+    depends_on:
+      - debezium
+    restart: unless-stopped

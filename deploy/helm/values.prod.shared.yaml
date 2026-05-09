@@ -1,0 +1,60 @@
+# Shared-runtime values contract for a future ERP Python Helm chart.
+
+global:
+  namespace: erp-python-system
+  sharedNamespace: shared-infra
+
+image:
+  repository: registry.example.com/erp/erp-python-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: erp-python.example.com
+
+resources:
+  requests:
+    cpu: "300m"
+    memory: "512Mi"
+  limits:
+    cpu: "1500m"
+    memory: "2Gi"
+
+env:
+  ERP_APP_NAME: Cross-Border ERP Python
+  ERP_ENVIRONMENT: production
+  ERP_DEBUG: "false"
+  ERP_DB_URL: postgresql+asyncpg://erp_python_app:REPLACE_ME_DB_PASSWORD@postgres.shared-infra.svc.cluster.local:5432/erp_python
+  ERP_REDIS_URL: redis://redis.shared-infra.svc.cluster.local:6379/2
+  ERP_REDIS_KEY_PREFIX: "erp-python:"
+  ERP_KAFKA_BOOTSTRAP_SERVERS: kafka.shared-infra.svc.cluster.local:9092
+  ERP_MINIO_ENDPOINT: minio.shared-infra.svc.cluster.local:9000
+  ERP_MINIO_ACCESS_KEY: minioadmin
+  ERP_MINIO_BUCKET: erp-assets
+  ERP_ES_URL: http://elasticsearch.shared-infra.svc.cluster.local:9200
+  ERP_CLICKHOUSE_URL: http://clickhouse.shared-infra.svc.cluster.local:8123
+  ERP_CLICKHOUSE_DB: erp_analytics
+  ERP_JAEGER_ENDPOINT: http://jaeger.shared-infra.svc.cluster.local:4317
+  ERP_PMS_API_URL: http://pms-app.fms-system.svc.cluster.local:8000/api/v1
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger.shared-infra.svc.cluster.local:4317
+  OTEL_SERVICE_NAME: erp-python
+
+secretRefs:
+  - name: erp-python-shared-runtime-secrets
+
+sharedDependencies:
+  postgres: postgres.shared-infra.svc.cluster.local:5432
+  redis: redis.shared-infra.svc.cluster.local:6379
+  kafka: kafka.shared-infra.svc.cluster.local:9092
+  minio: minio.shared-infra.svc.cluster.local:9000
+  elasticsearch: http://elasticsearch.shared-infra.svc.cluster.local:9200
+  clickhouse: http://clickhouse.shared-infra.svc.cluster.local:8123
+  jaeger: http://jaeger.shared-infra.svc.cluster.local:4317

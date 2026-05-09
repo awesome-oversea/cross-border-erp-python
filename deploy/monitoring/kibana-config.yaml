@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-index-patterns
+  namespace: erp
+data:
+  index-patterns.json: |
+    {
+      "patterns": [
+        {
+          "id": "erp-logs-*",
+          "title": "ERP Application Logs",
+          "timeFieldName": "timestamp",
+          "fields": [
+            {"name": "level", "type": "string", "searchable": true, "aggregatable": true},
+            {"name": "message", "type": "string", "searchable": true, "aggregatable": false},
+            {"name": "tenant_id", "type": "string", "searchable": true, "aggregatable": true},
+            {"name": "trace_id", "type": "string", "searchable": true, "aggregatable": true},
+            {"name": "module", "type": "string", "searchable": true, "aggregatable": true},
+            {"name": "method", "type": "string", "searchable": true, "aggregatable": true},
+            {"name": "path", "type": "string", "searchable": true, "aggregatable": true},
+            {"name": "status_code", "type": "number", "searchable": true, "aggregatable": true},
+            {"name": "elapsed_ms", "type": "number", "searchable": true, "aggregatable": true}
+          ]
+        }
+      ]
+    }

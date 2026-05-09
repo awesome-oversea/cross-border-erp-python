@@ -1,0 +1,45 @@
+replicaCount: 3
+
+image:
+  tag: "0.1.0-staging"
+
+env:
+  ENVIRONMENT: "staging"
+  DEBUG: "false"
+  DB_HOST: "erp-postgresql-staging"
+  DB_PORT: "5432"
+  DB_NAME: "erp_staging"
+  DB_POOL_SIZE: "15"
+  DB_MAX_OVERFLOW: "10"
+  REDIS_HOST: "erp-redis-staging"
+  REDIS_PORT: "6379"
+  KAFKA_BOOTSTRAP_SERVERS: "erp-kafka-staging:9092"
+  ES_HOSTS: "http://erp-elasticsearch-staging:9200"
+  LOG_LEVEL: "INFO"
+  JSON_LOGS: "true"
+  CORS_ORIGINS: '["https://staging.erp.example.com"]'
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+
+ingress:
+  enabled: true
+  hosts:
+    - host: staging.erp.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: erp-staging-tls
+      hosts:
+        - staging.erp.example.com

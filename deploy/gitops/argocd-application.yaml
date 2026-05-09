@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: erp-python
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: erp-python
+    app.kubernetes.io/part-of: erp-platform
+spec:
+  project: erp
+  source:
+    repoURL: https://github.com/example/erp-python.git
+    targetRevision: main
+    path: deploy/helm/erp-python
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-{{ .Values.environment }}.yaml
+      parameters:
+        - name: image.tag
+          value: "{{ .Values.imageTag }}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: erp
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

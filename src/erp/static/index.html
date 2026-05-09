@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>跨境电商 ERP</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script>
+    window.__ERP_API_BASE__ = '';
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import api from '/static/js/api.js';
+    import { register, navigate, resolve } from '/static/js/router.js';
+
+    const NAV_ITEMS = [
+      { path: '/dashboard', label: '管理驾驶舱', icon: '📊', section: 'Core' },
+      { path: '/pdm', label: '商品中心', icon: '📦', section: 'Core' },
+      { path: '/som', label: '渠道运营', icon: '🏪', section: 'Core' },
+      { path: '/oms', label: '订单中心', icon: '📋', section: 'Core' },
+      { path: '/wms', label: '库存控制塔', icon: '📊', section: 'Core' },
+      { path: '/scm', label: '采购与供应链', icon: '🏭', section: 'Core' },
+      { path: '/tms', label: '履约与物流', icon: '🚚', section: 'Core' },
+      { path: '/crm', label: '售后中心', icon: '🔄', section: 'Core' },
+      { path: '/fms', label: '结算与利润', icon: '💰', section: 'Core' },
+      { path: '/ads', label: '广告管理', icon: '📢', section: 'Growth' },
+      { path: '/fba', label: 'FBA/海外仓', icon: '🌐', section: 'Growth' },
+      { path: '/bi', label: '商业智能', icon: '📈', section: 'Growth' },
+      { path: '/sys', label: '系统设置', icon: '⚙️', section: 'System' },
+    ];
+
+    function renderLayout(activePath) {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="app-layout">
+          <aside class="sidebar">
+            <div class="sidebar-brand">
+              <h2>跨境 ERP</h2>
+              <small>Cross-Border Commerce OS</small>
+            </div>
+            ${buildNav(activePath)}
+            <div class="sidebar-footer">
+              <div class="nav-link" onclick="erpLogout()" style="color:var(--dim)">
+                <span class="nav-icon">🚪</span>
+                <span>退出登录</span>
+              </div>
+            </div>
+          </aside>
+          <div class="main-area">
+            <header class="topbar">
+              <div class="topbar-left">
+                <h1 id="topbar-title">${getTitle(activePath)}</h1>
+              </div>
+              <div class="topbar-right">
+                <div class="topbar-user">
+                  <span>👤</span>
+                  <span id="topbar-user-name">${api.displayName || '用户'}</span>
+                </div>
+              </div>
+            </header>
+            <div class="content-area" id="page-content"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function buildNav(activePath) {
+      let html = '';
+      let lastSection = '';
+      for (const item of NAV_ITEMS) {
+        if (item.section !== lastSection) {
+          lastSection = item.section;
+          html += `<div class="nav-section">${item.section}</div>`;
+        }
+        const isActive = activePath === item.path || activePath.startsWith(item.path + '/');
+        html += `
+          <div class="nav-link ${isActive ? 'active' : ''}" onclick="erpNav('${item.path}')">
+            <span class="nav-icon">${item.icon}</span>
+            <span>${item.label}</span>
+          </div>
+        `;
+      }
+      return html;
+    }
+
+    function getTitle(path) {
+      const item = NAV_ITEMS.find(n => path === n.path || path.startsWith(n.path + '/'));
+      return item ? item.label : '跨境电商 ERP';
+    }
+
+    window.erpNav = function(path) {
+      navigate(path);
+    };
+
+    window.erpLogout = async function() {
+      await api.logout();
+      navigate('/login');
+    };
+
+    register('/login', async () => {
+      const { render } = await import('/static/pages/login.js');
+      render();
+    });
+
+    register('/dashboard', async () => {
+      renderLayout('/dashboard');
+      const { render } = await import('/static/pages/dashboard.js');
+      render();
+    });
+
+    register('/pdm', async () => {
+      renderLayout('/pdm');
+      const { render } = await import('/static/pages/pdm.js');
+      render();
+    });
+
+    register('/som', async () => {
+      renderLayout('/som');
+      const { render } = await import('/static/pages/som.js');
+      render();
+    });
+
+    register('/oms', async () => {
+      renderLayout('/oms');
+      const { render } = await import('/static/pages/oms.js');
+      render();
+    });
+
+    register('/wms', async () => {
+      renderLayout('/wms');
+      const { render } = await import('/static/pages/wms.js');
+      render();
+    });
+
+    register('/scm', async () => {
+      renderLayout('/scm');
+      const { render } = await import('/static/pages/scm.js');
+      render();
+    });
+
+    register('/tms', async () => {
+      renderLayout('/tms');
+      const { render } = await import('/static/pages/tms.js');
+      render();
+    });
+
+    register('/crm', async () => {
+      renderLayout('/crm');
+      const { render } = await import('/static/pages/crm.js');
+      render();
+    });
+
+    register('/fms', async () => {
+      renderLayout('/fms');
+      const { render } = await import('/static/pages/fms.js');
+      render();
+    });
+
+    register('/ads', async () => {
+      renderLayout('/ads');
+      const { render } = await import('/static/pages/ads.js');
+      render();
+    });
+
+    register('/fba', async () => {
+      renderLayout('/fba');
+      const { render } = await import('/static/pages/fba.js');
+      render();
+    });
+
+    register('/bi', async () => {
+      renderLayout('/bi');
+      const { render } = await import('/static/pages/bi.js');
+      render();
+    });
+
+    register('/sys', async () => {
+      renderLayout('/sys');
+      const { render } = await import('/static/pages/sys.js');
+      render();
+    });
+
+    register('/404', async () => {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:16px">
+          <div style="font-size:64px">🔍</div>
+          <h1 style="font-size:32px;font-weight:900">404</h1>
+          <p style="color:var(--muted)">页面不存在</p>
+          <button class="btn btn-primary" onclick="erpNav('/dashboard')">返回首页</button>
+        </div>
+      `;
+    });
+
+    resolve();
+  </script>
+</body>
+</html>

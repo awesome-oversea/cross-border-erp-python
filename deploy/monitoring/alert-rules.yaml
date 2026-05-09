@@ -1,0 +1,135 @@
+groups:
+  - name: erp-application
+    rules:
+      - alert: ERPHighErrorRate
+        expr: rate(erp_http_requests_total{status=~"5.."}[5m]) / rate(erp_http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: P1
+          team: erp-platform
+        annotations:
+          summary: "ERP API error rate exceeds 5%"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.method }} {{ $labels.path }}"
+          runbook_url: "https://wiki.example.com/runbooks/erp-high-error-rate"
+
+      - alert: ERPHighLatency
+        expr: histogram_quantile(0.95, rate(erp_http_request_duration_ms_bucket[5m])) > 3000
+        for: 5m
+        labels:
+          severity: P2
+          team: erp-platform
+        annotations:
+          summary: "ERP API P95 latency exceeds 3 seconds"
+          description: "P95 latency is {{ $value }}ms for {{ $labels.method }} {{ $labels.path }}"
+
+      - alert: ERPDomainHighErrorRate
+        expr: rate(erp_domain_requests_total{status=~"5.."}[5m]) / rate(erp_domain_requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: P1
+          team: erp-platform
+        annotations:
+          summary: "ERP domain {{ $labels.domain }} error rate exceeds 10%"
+
+      - alert: ERPPodRestartTooMany
+        expr: increase(kube_pod_container_status_restarts_total{pod=~"erp-api-.*"}[1h]) > 3
+        for: 5m
+        labels:
+          severity: P1
+          team: erp-platform
+        annotations:
+          summary: "ERP pod restarting too frequently"
+
+      - alert: ERPCPUHigh
+        expr: container_cpu_usage_seconds_total{pod=~"erp-api-.*"} / container_spec_cpu_quota{pod=~"erp-api-.*"} * container_spec_cpu_period{pod=~"erp-api-.*"} > 0.85
+        for: 10m
+        labels:
+          severity: P2
+          team: erp-platform
+        annotations:
+          summary: "ERP pod CPU usage exceeds 85%"
+
+      - alert: ERPMemoryHigh
+        expr: container_memory_working_set_bytes{pod=~"erp-api-.*"} / container_spec_memory_limit_bytes{pod=~"erp-api-.*"} > 0.85
+        for: 10m
+        labels:
+          severity: P2
+          team: erp-platform
+        annotations:
+          summary: "ERP pod memory usage exceeds 85%"
+
+  - name: erp-infrastructure
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: P1
+          team: infrastructure
+        annotations:
+          summary: "PostgreSQL is down"
+
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_activity_count > 80
+        for: 5m
+        labels:
+          severity: P2
+          team: infrastructure
+        annotations:
+          summary: "PostgreSQL connection count exceeds 80"
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: P1
+          team: infrastructure
+        annotations:
+          summary: "Redis is down"
+
+      - alert: KafkaDown
+        expr: up{job="kafka"} == 0
+        for: 1m
+        labels:
+          severity: P1
+          team: infrastructure
+        annotations:
+          summary: "Kafka is down"
+
+      - alert: KafkaLagHigh
+        expr: kafka_consumer_group_lag > 10000
+        for: 10m
+        labels:
+          severity: P2
+          team: infrastructure
+        annotations:
+          summary: "Kafka consumer group lag exceeds 10000"
+
+  - name: erp-business
+    rules:
+      - alert: ERPOrderProcessingSlow
+        expr: rate(erp_domain_requests_total{domain="oms",status="200"}[5m]) < 1 and rate(erp_domain_requests_total{domain="oms"}[5m]) > 10
+        for: 15m
+        labels:
+          severity: P2
+          team: erp-business
+        annotations:
+          summary: "Order processing success rate is low"
+
+      - alert: ERPInventorySyncFailed
+        expr: increase(erp_domain_requests_total{domain="wms",status=~"5.."}[30m]) > 50
+        for: 5m
+        labels:
+          severity: P1
+          team: erp-business
+        annotations:
+          summary: "Inventory sync is failing frequently"
+
+      - alert: ERPConnectorCallFailed
+        expr: increase(erp_connector_call_total{status="error"}[15m]) > 20
+        for: 5m
+        labels:
+          severity: P2
+          team: erp-integration
+        annotations:
+          summary: "External connector calls are failing"

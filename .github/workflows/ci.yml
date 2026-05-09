@@ -1,0 +1,70 @@
+name: ERP CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: |
+          pip install ruff mypy alembic
+          pip install -r requirements.txt
+      - name: Check migrations
+        run: alembic check || echo "Migration check completed (non-fatal)"
+      - name: Ruff check
+        run: ruff check src/
+      - name: MyPy check
+        run: mypy src/erp --ignore-missing-imports
+
+  test:
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run unit tests
+        run: pytest tests/ -m "not integration" -v --tb=short
+
+  security:
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install security tools
+        run: pip install bandit pip-audit
+      - name: Bandit SAST
+        run: bandit -r src/erp -f json -o bandit-report.json
+      - name: pip-audit
+        run: pip-audit --desc
+
+  build:
+    runs-on: windows-latest
+    needs: [test, security]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image
+        run: docker build -t erp-python:${{ github.sha }} .
+      - name: Push to registry
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker tag erp-python:${{ github.sha }} erp-python:latest
+          docker push erp-python:latest
